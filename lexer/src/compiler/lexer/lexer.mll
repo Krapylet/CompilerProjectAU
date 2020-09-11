@@ -16,6 +16,9 @@
 }
 
 let digits=['0'-'9']+
+let stringLit=[\"\""][a-z0-9A-Z \| "\\\\""\"" \| ' ' \| \n \| \t \| \^c \| \ddd \| "\\\\" \| \f___f\]* ["\""]
+let id =[a-z A-Z]+[a-z A-Z _]*
+let comment = [/*]stringLit[*/]
 
 (* add more named regexps here *)
 
@@ -29,7 +32,9 @@ rule token = parse
 | "array"             { ARRAY }
 | "if"                { IF }
 | digits as i         { INT (int_of_string i) }
-
+| stringLit as s      { STRING (String.sub s 1 (String.length s - 2)) }
+| id as a             { ID a }
+| comment as c        { }
 
 (* add your regexps here *)
 | '='                 { EQ }
@@ -41,6 +46,7 @@ rule token = parse
 | '('                 { LPAREN }
 | ')'                 { RPAREN }
 | '.'                 { DOT }
+| '/'                 { SLASH }
 | '+'                 { PLUS }
 | '-'                 { MINUS }
 | '*'                 { TIMES }
@@ -51,6 +57,22 @@ rule token = parse
 | "<="                { LE }
 | '&'                 { AND }
 | '|'                 { OR }
+| "while"             { WHILE }
+| "for"               { FOR }
+| "to"                { TO }
+| "break"             { BREAK }
+| "let"               { LET }
+| "in"                { IN }
+| "end"               { END }
+| "function"          { FUNCTION }
+| "var"               { VAR }
+| "type"              { TYPE }
+| "then"              { THEN }
+| "else"              { ELSE }
+| "do"                { DO }
+| "of"                { OF }
+| "nil"               { NIL }
+
 
 (* default error handling *)
 | _ as t              { error lexbuf ("Invalid character '" ^ (String.make 1 t) ^ "'") }
