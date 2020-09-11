@@ -36,7 +36,21 @@ rule token = parse
 | ':'                 { COLON }
 | '{'                 { LBRACE }
 | '}'                 { RBRACE }
-
+| '['                 { LBRACK }
+| ']'                 { RBRACK }
+| '('                 { LPAREN }
+| ')'                 { RPAREN }
+| '.'                 { DOT }
+| '+'                 { PLUS }
+| '-'                 { MINUS }
+| '*'                 { TIMES }
+| '<'                 { LT }
+| '>'                 { GT }
+| "<>"                { NEQ }
+| ">="                { GE }
+| "<="                { LE }
+| '&'                 { AND }
+| '|'                 { OR }
 
 (* default error handling *)
 | _ as t              { error lexbuf ("Invalid character '" ^ (String.make 1 t) ^ "'") }
