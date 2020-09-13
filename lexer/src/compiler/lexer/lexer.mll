@@ -15,28 +15,25 @@
     raise (Error err_str)
 }
 
-let digits=['0'-'9']+
-let stringLit=[\"\""][a-z0-9A-Z \| "\\\\""\"" \| ' ' \| \n \| \t \| \^c \| \ddd \| "\\\\" \| \f___f\]* ["\""]
-let id =[a-z A-Z]+[a-z A-Z _]*
-let comment = [/*]stringLit[*/]
+let digits = ['0'-'9']+
+let stringLit = ['"']([ 'a'-'z' 'A'-'Z' '0'-'9' '_' '\n' ' ' '\t' '?' ':' ';' ',' '.' '=' '!' '[' ']' '(' ')' '{' '}' '^' '\\']*('\\' 'n')*)*['"']
+let id = ['a'-'z' 'A'-'Z']+['a'-'z' 'A'-'Z' '0'-'9' '_']*
 
 (* add more named regexps here *)
 
+
+
+
 (* an entrypoint with a few starting regexps *)
 rule token = parse
-  [' ' '\t' ]     { token lexbuf }     (* skip blanks *)
+  [' ' '\t']     { token lexbuf }     (* skip blanks *)
+| '\n'                { Lexing.new_line lexbuf; token lexbuf }
 | eof                 { EOF }
 | ','                 { COMMA }
 | ';'                 { SEMICOLON }
 | ":="                { ASSIGN }
 | "array"             { ARRAY }
 | "if"                { IF }
-| digits as i         { INT (int_of_string i) }
-| stringLit as s      { STRING (String.sub s 1 (String.length s - 2)) }
-| id as a             { ID a }
-| comment as c        { }
-
-(* add your regexps here *)
 | '='                 { EQ }
 | ':'                 { COLON }
 | '{'                 { LBRACE }
@@ -46,7 +43,7 @@ rule token = parse
 | '('                 { LPAREN }
 | ')'                 { RPAREN }
 | '.'                 { DOT }
-| '/'                 { SLASH }
+| '/'                 { DIVIDE }
 | '+'                 { PLUS }
 | '-'                 { MINUS }
 | '*'                 { TIMES }
@@ -72,7 +69,21 @@ rule token = parse
 | "do"                { DO }
 | "of"                { OF }
 | "nil"               { NIL }
+| "\\^"               { asciiCode lexbuf}
+| "/*"                { comment 0 lexbuf}              
+| id as a             { ID (a) }
+| digits as i         { if ((int_of_string i) <= Int.max_int) then (INT (int_of_string i)) else (error lexbuf ("Invalid integer"))  }
+| stringLit as s      { STRING (match String.length s with | 0 | 1 | 2 -> "" | l -> String.sub s 1 (l-2))}
 
-
+(*(String.sub s 1 (String.length s - 2))*)
 (* default error handling *)
 | _ as t              { error lexbuf ("Invalid character '" ^ (String.make 1 t) ^ "'") }
+
+and comment commentLevel = parse
+| "/*"                { comment (commentLevel+1) lexbuf}
+| "*/"                { (if commentLevel = 0 then token else comment (commentLevel-1)) lexbuf}
+| '\n'                { Lexing.new_line lexbuf; comment commentLevel lexbuf }
+| _                   { comment (commentLevel) lexbuf}
+
+and asciiCode = parse
+| _ as c              {INT (Char.code c)}
