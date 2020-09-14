@@ -16,7 +16,7 @@
 }
 
 let digits = ['0'-'9']+
-let stringLit = ['"']([ 'a'-'z' 'A'-'Z' '0'-'9' '_' '\n' ' ' '\t' '?' ':' ';' ',' '.' '=' '!' '[' ']' '(' ')' '{' '}' '^' '\\']*('\\' 'n')*)*['"']
+let stringLit = ['"'][ 'a'-'z' 'A'-'Z' '0'-'9' '_' '\n' ' ' '\t' '?' ':' ';' ',' '.' '=' '!' '[' ']' '(' ')' '{' '}' '^' '\\']*['"']
 let id = ['a'-'z' 'A'-'Z']+['a'-'z' 'A'-'Z' '0'-'9' '_']*
 
 (* add more named regexps here *)
@@ -69,13 +69,20 @@ rule token = parse
 | "do"                { DO }
 | "of"                { OF }
 | "nil"               { NIL }
+| '\"'                { let pos = lexbuf.lex_start_p in
+                        let s = stringToken "" lexbuf in
+                          lexbuf.lex_start_p <- pos;
+                          STRING s} 
 | "\\^"               { asciiCode lexbuf}
-| "/*"                { comment 0 lexbuf}              
+| "/*"                { comment 0 lexbuf}  
+
 | id as a             { ID (a) }
 | digits as i         { if ((int_of_string i) <= Int.max_int) then (INT (int_of_string i)) else (error lexbuf ("Invalid integer"))  }
-| stringLit as s      { STRING (match String.length s with | 0 | 1 | 2 -> "" | l -> String.sub s 1 (l-2))}
 
-(*(String.sub s 1 (String.length s - 2))*)
+(*
+| stringLit as s      { STRING (match String.length s with | 0 | 1 | 2 -> "" | l -> String.sub s 1 (l-2))}
+ *)
+
 (* default error handling *)
 | _ as t              { error lexbuf ("Invalid character '" ^ (String.make 1 t) ^ "'") }
 
@@ -87,3 +94,11 @@ and comment commentLevel = parse
 
 and asciiCode = parse
 | _ as c              {INT (Char.code c)}
+
+and stringToken accumulator = parse
+| '\"'                {accumulator}
+| '\\'                {escapeSequence lexbuf}
+|_ as c               {stringToken (accumulator ^ (String.make 1 c)) lexbuf}
+
+and escapeSequence = parse
+| 'n'                 {stringToken "\n" lexbuf}
