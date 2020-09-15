@@ -16,8 +16,10 @@
 }
 
 let digits = ['0'-'9']+
-let stringLit = ['"'][ 'a'-'z' 'A'-'Z' '0'-'9' '_' '\n' ' ' '\t' '?' ':' ';' ',' '.' '=' '!' '[' ']' '(' ')' '{' '}' '^' '\\']*['"']
+let stringLit = ['"'][ '!'-'~']*['"']
+let whiteSpace = [' ' '\t' '\n']+['\\']
 let id = ['a'-'z' 'A'-'Z']+['a'-'z' 'A'-'Z' '0'-'9' '_']*
+let numberLetter = ['0'-'9']+['A'-'Z' 'a'-'z']
 
 (* add more named regexps here *)
 
@@ -26,7 +28,7 @@ let id = ['a'-'z' 'A'-'Z']+['a'-'z' 'A'-'Z' '0'-'9' '_']*
 
 (* an entrypoint with a few starting regexps *)
 rule token = parse
-  [' ' '\t']     { token lexbuf }     (* skip blanks *)
+| [' ' '\t']     { token lexbuf }     (* skip blanks *)
 | '\n'                { Lexing.new_line lexbuf; token lexbuf }
 | eof                 { EOF }
 | ','                 { COMMA }
@@ -73,15 +75,11 @@ rule token = parse
                         let s = stringToken "" lexbuf in
                           lexbuf.lex_start_p <- pos;
                           STRING s} 
-| "\\^"               { asciiCode lexbuf}
 | "/*"                { comment 0 lexbuf}  
-
 | id as a             { ID (a) }
-| digits as i         { if ((int_of_string i) <= Int.max_int) then (INT (int_of_string i)) else (error lexbuf ("Invalid integer"))  }
+| digits as i         { if ((int_of_string i) <= Int.max_int) then (INT (int_of_string i)) else (error lexbuf ("Invalid integer")) }
+| numberLetter as i   { error lexbuf ("Cannot have letters after a number '" ^ i ^ "'") }
 
-(*
-| stringLit as s      { STRING (match String.length s with | 0 | 1 | 2 -> "" | l -> String.sub s 1 (l-2))}
- *)
 
 (* default error handling *)
 | _ as t              { error lexbuf ("Invalid character '" ^ (String.make 1 t) ^ "'") }
@@ -97,8 +95,27 @@ and asciiCode = parse
 
 and stringToken accumulator = parse
 | '\"'                {accumulator}
-| '\\'                {escapeSequence lexbuf}
-|_ as c               {stringToken (accumulator ^ (String.make 1 c)) lexbuf}
+| '\\'                {accumulator ^ escapeSequence lexbuf}
+| _ as c              {stringToken (accumulator ^ (String.make 1 c)) lexbuf}
 
 and escapeSequence = parse
-| 'n'                 {stringToken "\n" lexbuf}
+| 'n'                 { stringToken "\n" lexbuf }
+| 't'                 { stringToken "\t" lexbuf }
+| '\"'                { stringToken "\"" lexbuf }
+| whiteSpace          { stringToken "" lexbuf }
+| '^'                 { charCode lexbuf}
+| ['0'-'9'] as d      { let s = (String.make 1 d) ^ (asciiSign 2 lexbuf) in
+                        stringToken ( String.make 1 (Char.chr (int_of_string s))) lexbuf 
+                        }
+| '\\'                { stringToken "\\" lexbuf }
+| _ as e              { error lexbuf ("Invalid character in escape sequence \\'" ^ (String.make 1 e) ^ "'") }
+
+and charCode = parse
+| ['@'-'_'] as c      { stringToken (String.make 1 (Char.chr (Char.code c - 64))) lexbuf }
+| ['a'-'z'] as c      { stringToken (String.make 1 (Char.chr (Char.code c - 64 - 32))) lexbuf }
+| '?' as c            { stringToken (String.make 1 (Char.chr (Char.code c + 64))) lexbuf }
+| _ as c              { stringToken (String.make 1 (Char.chr (Char.code c))) lexbuf}
+
+and asciiSign counter = parse
+| ['0'-'9'] as d      { if counter > 1 then (String.make 1 d) ^ asciiSign (counter - 1) lexbuf else String.make 1 d}
+| _ as e              { error lexbuf ("Invalid character in \\ddd'" ^ (String.make 1 e) ^ "'") }
