@@ -76,9 +76,12 @@ rule token = parse
                           STRING s} 
 | "/*"                { comment 0 lexbuf}  
 | id as a             { ID (a) }
-| digits as i         { if ((int_of_string i) <= Int.max_int) then (INT (int_of_string i)) else (error lexbuf ("Invalid integer")) }
+| digits as i         { 
+                        try INT (int_of_string i)
+                        with
+                        | _ -> error lexbuf ("Invalid integer") 
+                        }
 | numberLetter as i   { error lexbuf ("Cannot have letters after a number '" ^ i ^ "'") }
-
 
 (* default error handling *)
 | _ as t              { error lexbuf ("Invalid character '" ^ (String.make 1 t) ^ "'") }
@@ -94,6 +97,7 @@ and formFeed = parse
 | '\n'                { Lexing.new_line lexbuf; formFeed lexbuf }
 | '\t'                { formFeed lexbuf }
 | ' '                 { formFeed lexbuf }
+| eof                 {  error lexbuf ("End of file") }
 | _                   {  error lexbuf ("FormFeed never ended") }
 
 and asciiCode = parse
@@ -103,6 +107,7 @@ and stringToken accumulator = parse
 | '\"'                {accumulator}
 | '\\'                {accumulator ^ escapeSequence lexbuf}
 | [' '-'~'] as c      {stringToken (accumulator ^ (String.make 1 c)) lexbuf}
+| eof                 {  error lexbuf ("End of file") }
 | _ as c              {error lexbuf ("Illegal character " ^ (String.make 1 c)) }
 
 and escapeSequence = parse
@@ -114,17 +119,21 @@ and escapeSequence = parse
 | '\n'                { Lexing.new_line lexbuf; formFeed lexbuf }
 | '^'                 { charCode lexbuf}
 | ['0'-'9'] as d      { let s = (String.make 1 d) ^ (asciiSign 2 lexbuf) in
-                        stringToken ( String.make 1 (Char.chr (int_of_string s))) lexbuf 
+                        if int_of_string s > 255 then error lexbuf ("Argument out of bounds")
+                        else stringToken ( String.make 1 (Char.chr (int_of_string s))) lexbuf 
                         }
 | '\\'                { stringToken "\\" lexbuf }
+| eof                 { error lexbuf ("End of file") }
 | _ as e              { error lexbuf ("Invalid character in escape sequence \\'" ^ (String.make 1 e) ^ "'") }
 
 and charCode = parse
 | ['@'-'_'] as c      { stringToken (String.make 1 (Char.chr (Char.code c - 64))) lexbuf }
 | ['a'-'z'] as c      { stringToken (String.make 1 (Char.chr (Char.code c - 64 - 32))) lexbuf }
 | '?' as c            { stringToken (String.make 1 (Char.chr (Char.code c + 64))) lexbuf }
-| _ as c              { stringToken (String.make 1 (Char.chr (Char.code c))) lexbuf}
+| eof                 { error lexbuf ("End of file.") }
+| _ as e              { error lexbuf ("Illigal character after ^" ^ (String.make 1 e)) }
 
 and asciiSign counter = parse
 | ['0'-'9'] as d      { if counter > 1 then (String.make 1 d) ^ asciiSign (counter - 1) lexbuf else String.make 1 d}
 | _ as e              { error lexbuf ("Invalid character in \\ddd'" ^ (String.make 1 e) ^ "'") }
+
