@@ -1,7 +1,7 @@
-let var blue := "\^[[44m"
+let var blue := "\^[[44m"   
     var reset := "\027[0m" 
 in 
-      print (blue);
+      print (blue); 
       print ("Hello");
       print (reset);
       print ("\nBye\n");
