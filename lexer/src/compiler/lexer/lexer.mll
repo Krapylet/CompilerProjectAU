@@ -17,7 +17,6 @@
 
 let digits = ['0'-'9']+
 let stringLit = ['"'][ '!'-'~']*['"']
-let whiteSpace = [' ' '\t' '\n']+['\\']
 let id = ['a'-'z' 'A'-'Z']+['a'-'z' 'A'-'Z' '0'-'9' '_']*
 let numberLetter = ['0'-'9']+['A'-'Z' 'a'-'z']
 
@@ -91,6 +90,13 @@ and comment commentLevel = parse
 | '\n'                { Lexing.new_line lexbuf; comment commentLevel lexbuf }
 | _                   { comment (commentLevel) lexbuf}
 
+and formFeed = parse
+| "\\"                { stringToken "" lexbuf}
+| '\n'                { Lexing.new_line lexbuf; formFeed lexbuf }
+| '\t'                { formFeed lexbuf }
+| ' '                 { formFeed lexbuf }
+| _                   {  error lexbuf ("FormFeed never ended") }
+
 and asciiCode = parse
 | _ as c              {INT (Char.code c)}
 
@@ -103,7 +109,9 @@ and escapeSequence = parse
 | 'n'                 { stringToken "\n" lexbuf }
 | 't'                 { stringToken "\t" lexbuf }
 | '\"'                { stringToken "\"" lexbuf }
-| whiteSpace          { stringToken "" lexbuf }
+| ' '                 { formFeed lexbuf }
+| '\t'                { formFeed lexbuf }
+| '\n'                { Lexing.new_line lexbuf; formFeed lexbuf }
 | '^'                 { charCode lexbuf}
 | ['0'-'9'] as d      { let s = (String.make 1 d) ^ (asciiSign 2 lexbuf) in
                         stringToken ( String.make 1 (Char.chr (int_of_string s))) lexbuf 
