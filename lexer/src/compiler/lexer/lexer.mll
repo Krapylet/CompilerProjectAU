@@ -46,6 +46,7 @@ rule token = parse
 | ')'                 { RPAREN }
 | '.'                 { DOT }
 | '/'                 { DIVIDE }
+| '^'                 { DIVIDE }
 | '+'                 { PLUS }
 | '-'                 { MINUS }
 | '*'                 { TIMES }
