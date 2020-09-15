@@ -16,7 +16,6 @@
 }
 
 let digits = ['0'-'9']+
-let stringLit = ['"'][ '!'-'~']*['"']
 let id = ['a'-'z' 'A'-'Z']+['a'-'z' 'A'-'Z' '0'-'9' '_']*
 let numberLetter = ['0'-'9']+['A'-'Z' 'a'-'z']
 
@@ -45,7 +44,7 @@ rule token = parse
 | ')'                 { RPAREN }
 | '.'                 { DOT }
 | '/'                 { DIVIDE }
-| '^'                 { DIVIDE }
+| '^'                 { CARET }
 | '+'                 { PLUS }
 | '-'                 { MINUS }
 | '*'                 { TIMES }
@@ -103,7 +102,8 @@ and asciiCode = parse
 and stringToken accumulator = parse
 | '\"'                {accumulator}
 | '\\'                {accumulator ^ escapeSequence lexbuf}
-| _ as c              {stringToken (accumulator ^ (String.make 1 c)) lexbuf}
+| [' '-'~'] as c      {stringToken (accumulator ^ (String.make 1 c)) lexbuf}
+| _ as c              {error lexbuf ("Illegal character " ^ (String.make 1 c)) }
 
 and escapeSequence = parse
 | 'n'                 { stringToken "\n" lexbuf }
