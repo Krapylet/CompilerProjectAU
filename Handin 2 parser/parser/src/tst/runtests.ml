@@ -17,7 +17,8 @@ they fit. *)
 let defaultPhasesToCheck = 
   let open TestPhases in 
     [ 
-      LEX; PAR
+      (* to run lex and par tests use: LEX; PAR *)
+      PAR
     ]
         
           
