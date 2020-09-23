@@ -1,0 +1,13 @@
+_build
+.merlin 
+*.swp 
+*.exe
+*.bc
+*.a
+*.cma
+*.cmxa
+*.install
+.vscode
+_abandoned
+CONFIGURED-NORM
+CONFIGURED-RESCUE
