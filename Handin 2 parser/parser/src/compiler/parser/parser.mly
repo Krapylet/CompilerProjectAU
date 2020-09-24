@@ -20,9 +20,13 @@
 %token AND OR ASSIGN ARRAY IF THEN ELSE WHILE FOR TO DO
 %token LET IN END OF BREAK NIL FUNCTION VAR TYPE CARET 
 
-%left PLUS, MINUS, TIMES, DIVIDE, AND, OR
+%right ASSIGN, THEN, ELSE
 %nonassoc LT, LE, GT, GE, EQ, NEQ
-%right CARET, ASSIGN, THEN, ELSE
+%left AND, OR
+%left PLUS, MINUS
+%left TIMES, DIVIDE
+%right CARET
+
 
 
 %start <Tigercommon.Absyn.exp> program  
@@ -70,25 +74,31 @@ exp_base:
 (* Call Expression *)
 | id=ID LPAREN l=separated_list(COMMA, exp) RPAREN { CallExp{func = symbol id; args = l} }
 (* BINOP EXP *)
-| e1 = exp CARET e2 = exp { OpExp{left = e1; oper = ExponentOp; right = e2} }
-| e1 = exp TIMES e2 = exp { OpExp{left = e1; oper = TimesOp; right = e2} }
+| e1 = exp CARET e2 = exp { OpExp{left = e1; oper = ExponentOp; right = e2} } 
+| e1 = exp TIMES e2 = exp { OpExp{left = e1; oper = TimesOp; right = e2} } 
 | e1 = exp DIVIDE e2 = exp { OpExp{left = e1; oper = DivideOp; right = e2} }
-| e1 = exp PLUS e2 = exp { OpExp{left = e1; oper = PlusOp; right = e2} }
-| e1 = exp MINUS e2 = exp { OpExp{left = e1; oper = MinusOp; right = e2} }
-| e1 = exp EQ e2 = exp { OpExp{left = e1; oper = EqOp; right = e2} }
+| e1 = exp PLUS e2 = exp { OpExp{left = e1; oper = PlusOp; right = e2} } 
+| e1 = exp MINUS e2 = exp { OpExp{left = e1; oper = MinusOp; right = e2} } 
+| e1 = exp EQ e2 = exp { OpExp{left = e1; oper = EqOp; right = e2} } 
 | e1 = exp NEQ e2 = exp { OpExp{left = e1; oper = NeqOp; right = e2} }
 | e1 = exp LT e2 = exp { OpExp{left = e1; oper = LtOp; right = e2} }
 | e1 = exp LE e2 = exp { OpExp{left = e1; oper = LeOp; right = e2} }
 | e1 = exp GT e2 = exp { OpExp{left = e1; oper = GtOp; right = e2} }
 | e1 = exp GE e2 = exp { OpExp{left = e1; oper = GeOp; right = e2} }
-| e1 = exp AND e2 = exp { let zero = ((IntExp 0) ^! $startpos) in
+| e1 = exp AND e2 = exp { let zero = ((IntExp 0) ^! $startpos) in 
                             IfExp{test=e1; thn=e2; els=Some(zero) }
-                        }
+                        } 
 | e1 = exp OR e2 = exp { let one = ((IntExp 1) ^! $startpos) in
                             IfExp{test=e1; thn=one; els=Some(e2) }
-                        }
+                        } 
+| recType=ID LBRACE l=separated_list(COMMA, fieldCreation) RBRACE {RecordExp {fields = l; typ = (symbol recType)}}
 
-(* i := i - 1 *)
+(* Array Creation *)
+| arrType = ID LBRACK e1 = exp RBRACK OF e2 = exp {ArrayExp{ typ = (symbol arrType) ; size = e1; init = e2}}
+
+fieldCreation:
+| fieldName=ID EQ fieldValue=exp {(symbol fieldName), fieldValue}
+
 
 var_base:
 (* Simple var i.e. x or var x *)
@@ -154,5 +164,7 @@ ty:
 | LBRACE tyFields = separated_list(COMMA, fielddata) RBRACE { RecordTy tyFields }
 | ARRAY OF id = ID { ArrayTy(symbol id, $startpos) }
 
-
+lvaluePartSpec:
+| ID DOT fieldName=ID {FieldPart fieldName}
+| ID RBRACE e=exp LBRACE {SubscriptPart exp}
 
