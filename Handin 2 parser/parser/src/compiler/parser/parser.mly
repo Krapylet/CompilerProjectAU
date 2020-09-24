@@ -27,7 +27,11 @@
 %left TIMES, DIVIDE
 %right CARET
 
+(*
+Unary minus : HOW!
+Hvordan defineres precerens
 
+*))
 
 %start <Tigercommon.Absyn.exp> program  
 (* Observe that we need to use fully qualified types for the start symbol *)
@@ -48,6 +52,7 @@ var:
 (* Expressions *)
 exp_base:
 | NIL  { NilExp}
+| MINUS INT {IntExp (0 - i)}
 | i = INT  { IntExp i }
 | s = STRING { StringExp s }
 (* Loop Expressions *)
@@ -91,11 +96,13 @@ exp_base:
 | e1 = exp OR e2 = exp { let one = ((IntExp 1) ^! $startpos) in
                             IfExp{test=e1; thn=one; els=Some(e2) }
                         } 
+(* Record Creation*)
 | recType=ID LBRACE l=separated_list(COMMA, fieldCreation) RBRACE {RecordExp {fields = l; typ = (symbol recType)}}
 
 (* Array Creation *)
 | arrType = ID LBRACK e1 = exp RBRACK OF e2 = exp {ArrayExp{ typ = (symbol arrType) ; size = e1; init = e2}}
 
+(* Helper method to record creation *)
 fieldCreation:
 | fieldName=ID EQ fieldValue=exp {(symbol fieldName), fieldValue}
 
