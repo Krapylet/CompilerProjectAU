@@ -28,10 +28,12 @@
 %right CARET
 
 (*
-Unary minus : HOW!
-Hvordan defineres precerens
-
-*))
+Unary minus : HOW! - definerer uminus og brug %prec
+Hvordan defineres precedens - det er allerede rigtgt
+Shift reduce, hvordan finder man dem - parser.conflicts 
+test24, går ind i array assign istedet for var_base
+brug parseraux metode til id[], . vars
+*)
 
 %start <Tigercommon.Absyn.exp> program  
 (* Observe that we need to use fully qualified types for the start symbol *)
@@ -52,7 +54,6 @@ var:
 (* Expressions *)
 exp_base:
 | NIL  { NilExp}
-| MINUS INT {IntExp (0 - i)}
 | i = INT  { IntExp i }
 | s = STRING { StringExp s }
 (* Loop Expressions *)
@@ -61,8 +62,8 @@ exp_base:
                             ForExp{var = (symbol id); escape = ref true; lo = e1; hi = e2; body = e3} 
                             }
 (* Var Expressions *)
-| v = var { VarExp v } 
 | v = var ASSIGN e=exp { AssignExp{var=v; exp=e} }
+| v = var { VarExp v } 
 (* Conditional Expressions *) 
 | IF e1=exp THEN e2=exp ELSE e3=exp { IfExp{test=e1; thn=e2; els=Some(e3)} }
 | IF e1=exp THEN e2=exp { IfExp{test=e1; thn=e2; els=None} }
@@ -101,7 +102,6 @@ exp_base:
 
 (* Array Creation *)
 | arrType = ID LBRACK e1 = exp RBRACK OF e2 = exp {ArrayExp{ typ = (symbol arrType) ; size = e1; init = e2}}
-
 (* Helper method to record creation *)
 fieldCreation:
 | fieldName=ID EQ fieldValue=exp {(symbol fieldName), fieldValue}
@@ -115,6 +115,9 @@ var_base:
 | id1=var DOT id2 = ID { FieldVar(id1, symbol id2) }
 (* Subscript var i.e. x[e]*)
 | id=var LBRACK e=exp RBRACK { SubscriptVar(id, e) }
+(* | id = var l=list(lvaluePartSpec) {} makelValuepartspec *) 
+| id = var l=list(lvaluePartSpec) { varmakeLvaluePartSpec id $startpos l } (* makelValuepartspec *)
+
 
 
 
