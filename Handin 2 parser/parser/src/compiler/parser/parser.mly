@@ -57,6 +57,7 @@ exp:
 
 var:
 | v=var_base { v ^@ $startpos }
+ 
 
 
 (* Expressions *)
@@ -107,6 +108,7 @@ exp_base:
 | e1 = exp OR e2 = exp { let one = ((IntExp 1) ^! $startpos) in
                             IfExp{test=e1; thn=one; els=Some(e2) }
                         } 
+
 (* Record Creation*)
 | recType=ID LBRACE l=separated_list(COMMA, fieldCreation) RBRACE {RecordExp {fields = l; typ = (symbol recType)}}
 
@@ -122,11 +124,10 @@ var_base:
 | VAR id = ID { SimpleVar(symbol id) }
 | id = ID { SimpleVar (symbol id) }
 (* Field var i.e. y.x*)
-| id1=var DOT id2 = ID { FieldVar(id1, symbol id2) }
+| id1=var DOT id2 = ID {FieldVar(id1, symbol id2)}
 (* Subscript var i.e. x[e]*)
-| id=var LBRACK e=exp RBRACK { SubscriptVar(id, e) }
-(* | id = var l=list(lvaluePartSpec) {} makelValuepartspec *) 
-(*| ) id = var l=list(lvaluePartSpec) { varmakeLvaluePartSpec id $startpos l } *)
+| id=var LBRACK e=exp RBRACK { SubscriptVar(id, e) } 
+(*| id = var l=list(lvaluePartSpec) {makeLvaluePartSpec id $startpos l}*)
 
 
 
@@ -185,6 +186,6 @@ ty:
 | ARRAY OF id = ID { ArrayTy(symbol id, $startpos) }
 
 lvaluePartSpec:
-| ID DOT fieldName=ID {FieldPart fieldName}
-| ID RBRACE e=exp LBRACE {SubscriptPart exp}
+| DOT fieldName=ID {FieldPart (symbol fieldName)}
+| RBRACE e=exp LBRACE {SubscriptPart e}
 
