@@ -20,7 +20,11 @@
 %token AND OR ASSIGN ARRAY IF THEN ELSE WHILE FOR TO DO
 %token LET IN END OF BREAK NIL FUNCTION VAR TYPE CARET 
 
-%right ASSIGN, THEN, ELSE
+(* 
+  DO - right?
+  OF - right?
+ *)
+%right ASSIGN, THEN, ELSE, DO, OF
 %nonassoc LT, LE, GT, GE, EQ, NEQ
 %left AND, OR
 %left PLUS, MINUS
@@ -116,7 +120,7 @@ var_base:
 (* Subscript var i.e. x[e]*)
 | id=var LBRACK e=exp RBRACK { SubscriptVar(id, e) }
 (* | id = var l=list(lvaluePartSpec) {} makelValuepartspec *) 
-| id = var l=list(lvaluePartSpec) { varmakeLvaluePartSpec id $startpos l } (* makelValuepartspec *)
+(*| ) id = var l=list(lvaluePartSpec) { varmakeLvaluePartSpec id $startpos l } *)
 
 
 
