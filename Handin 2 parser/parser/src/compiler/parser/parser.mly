@@ -32,6 +32,7 @@
 %nonassoc LT, LE, GT, GE, EQ, NEQ
 %left PLUS, MINUS
 %left TIMES, DIVIDE
+%left UNMINUS
 %right CARET
 
 (*
@@ -86,6 +87,8 @@ exp_base:
                                     }
 (* Call Expression *)
 | id=ID LPAREN l=separated_list(COMMA, exp) RPAREN { CallExp{func = symbol id; args = l} }
+(* Unary Minus *)
+| MINUS e = exp { OpExp{left = (IntExp 0) ^! $startpos; oper = MinusOp; right = e} } %prec UNMINUS
 (* BINOP EXP *)
 | e1 = exp CARET e2 = exp { OpExp{left = e1; oper = ExponentOp; right = e2} } 
 | e1 = exp TIMES e2 = exp { OpExp{left = e1; oper = TimesOp; right = e2} } 
