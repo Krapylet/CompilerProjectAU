@@ -23,10 +23,13 @@
 (* 
   DO - right?
   OF - right?
+
+  Har byttede om på nonassoc og left AND, OR
+  - 5 mindre fejl :o
  *)
 %right ASSIGN, THEN, ELSE, DO, OF
-%nonassoc LT, LE, GT, GE, EQ, NEQ
 %left AND, OR
+%nonassoc LT, LE, GT, GE, EQ, NEQ
 %left PLUS, MINUS
 %left TIMES, DIVIDE
 %right CARET
@@ -76,7 +79,7 @@ exp_base:
 (* Sequence Expression *)
 | LPAREN p = separated_list(SEMICOLON, exp) RPAREN {SeqExp p}
 (* Let Expression *)
-| LET d = nonempty_list(decl) IN e=separated_list(SEMICOLON, exp) END { LetExp{
+| LET d = list(decl) IN e=separated_list(SEMICOLON, exp) END { LetExp{
                                         decls = d 
                                         ; body = (SeqExp e) ^! $startpos
                                         }
