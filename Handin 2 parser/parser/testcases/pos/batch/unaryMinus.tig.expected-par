@@ -1,0 +1,7 @@
+AssignExp(
+  SimpleVar(i),
+  OpExp(TimesOp,
+  | IntExp(2),
+  | OpExp(MinusOp,
+  |   IntExp(0),
+  |   IntExp(2))))

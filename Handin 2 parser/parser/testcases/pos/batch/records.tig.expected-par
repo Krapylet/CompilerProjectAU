@@ -1,0 +1,14 @@
+LetExp([
+  VarDec(a,true,NONE,
+  | RecordExp(int,[
+  |   (one,
+  |   | IntExp(1)),
+  |   (two,
+  |   | IntExp(2)),
+  |   (three,
+  |   | IntExp(3))])],
+  SeqExp[
+  | VarExp(
+  |   FieldVar(
+  |   | SimpleVar(a),
+  |   | one))])

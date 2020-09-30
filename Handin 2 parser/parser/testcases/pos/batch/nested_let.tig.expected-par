@@ -1,0 +1,13 @@
+LetExp([
+  VarDec(a,true,NONE,
+  | IntExp(1))],
+  SeqExp[
+  | LetExp([
+  |   VarDec(b,true,NONE,
+  |   | IntExp(2))],
+  |   SeqExp[
+  |   | OpExp(PlusOp,
+  |   |   VarExp(
+  |   |   | SimpleVar(a)),
+  |   |   VarExp(
+  |   |   | SimpleVar(b)))])])
