@@ -57,7 +57,7 @@ exp:
 
 var:
 | v=var_base { v ^@ $startpos }
-
+| id=var l=nonempty_list(lvaluePartSpec) {makeLvaluePartSpec id $startpos l}
  
 
 
@@ -125,10 +125,10 @@ var_base:
 | VAR id = ID { SimpleVar(symbol id) }
 | id = ID { SimpleVar (symbol id) }
 (* Field var i.e. y.x*)
-| id1=var DOT id2 = ID {FieldVar(id1, symbol id2)}
+(*| id1=var DOT id2 = ID {FieldVar(id1, symbol id2)}*)
 (* Subscript var i.e. x[e]*)
-| id=var LBRACK e=exp RBRACK { SubscriptVar(id, e) } 
-(*| id = var l=list(lvaluePartSpec) {makeLvaluePartSpec id $startpos l}*)
+(*| id=var LBRACK e=exp RBRACK { SubscriptVar(id, e) } *)
+
 
 
 
@@ -188,5 +188,5 @@ ty:
 
 lvaluePartSpec:
 | DOT fieldName=ID {FieldPart (symbol fieldName)}
-| RBRACE e=exp LBRACE {SubscriptPart e}
+| LBRACK e=exp RBRACK {SubscriptPart e}
 
