@@ -1,0 +1,1 @@
+(:standard -I ../../rescue/lexer/native -I ../../rescue/lexer/byte -I ../../rescue/parser/native -I ../../rescue/parser/byte ../../rescue/lexer/native/tigerlexer__Lexer.cmx  ../../rescue/parser/native/tigerparser__ParserAux.cmx ../../rescue/parser/native/tigerparser__Parser.cmx )
