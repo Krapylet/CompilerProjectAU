@@ -1,5 +1,7 @@
 (library
         (name tigermain)
-        (libraries stdio cmdliner tigercommon tigerlexer tigerparser tigernormalize tigersemant)
+        (ocamlc_flags (:include rescue.byte.sexp))
+        (ocamlopt_flags (:include rescue.native.sexp))
+        (libraries stdio cmdliner tigercommon tigernormalize tigersemant)
         )
 
