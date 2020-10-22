@@ -43,10 +43,10 @@ let rec transExp (ctxt: context) =
     | A.IntExp n -> IntExp n ^! T.INT 
     | A.OpExp {left; oper; right} ->
         (* for simplicity; restrict oper to plus *)
+        let e_left, t_left = e_ty (trexp left) in 
+        let e_right, t_right = e_ty (trexp right) in 
         (match oper with 
            PlusOp -> 
-            let e_left, t_left = e_ty (trexp left) in 
-            let e_right, t_right = e_ty (trexp right) in 
               (match t_left, t_right with 
                 T.INT, T.INT -> 
                   OpExp {left = e_left; right = e_right; oper = PlusOp} ^! T.INT
