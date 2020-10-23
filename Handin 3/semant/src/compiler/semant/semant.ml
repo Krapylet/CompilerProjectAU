@@ -42,15 +42,33 @@ let rec transExp (ctxt: context) =
     match exp_base with 
     | A.IntExp n -> IntExp n ^! T.INT 
     | A.OpExp {left; oper; right} ->
-        (* for simplicity; restrict oper to plus *)
         let e_left, t_left = e_ty (trexp left) in 
         let e_right, t_right = e_ty (trexp right) in 
-        (match oper with 
-           PlusOp -> 
-              (match t_left, t_right with 
-                T.INT, T.INT -> 
-                  OpExp {left = e_left; right = e_right; oper = PlusOp} ^! T.INT
+        (match t_left, t_right with 
+          T.INT, T.INT -> 
+              (match oper with
+                PlusOp -> OpExp {left = e_left; right = e_right; oper = PlusOp} ^! T.INT
+                | MinusOp -> OpExp {left = e_left; right = e_right; oper = MinusOp} ^! T.INT
+                | DivideOp -> OpExp {left = e_left; right = e_right; oper = DivideOp} ^! T.INT
+                | TimesOp -> OpExp {left = e_left; right = e_right; oper = TimesOp} ^! T.INT
+                | ExponentOp -> OpExp {left = e_left; right = e_right; oper = ExponentOp} ^! T.INT
+                | EqOp -> OpExp {left = e_left; right = e_right; oper = EqOp} ^! T.INT
+                | NeqOp -> OpExp {left = e_left; right = e_right; oper = NeqOp} ^! T.INT
+                | LtOp -> OpExp {left = e_left; right = e_right; oper = LtOp} ^! T.INT
+                | LeOp -> OpExp {left = e_left; right = e_right; oper = LeOp} ^! T.INT
+                | GtOp -> OpExp {left = e_left; right = e_right; oper = GtOp} ^! T.INT
+                | GeOp -> OpExp {left = e_left; right = e_right; oper = GeOp} ^! T.INT
                 | _ -> raise ThisShouldBeProperErrorMessage
+              )
+          | T.STRING, T.STRING ->
+              (match oper with
+              | EqOp -> OpExp {left = e_left; right = e_right; oper = EqOp} ^! T.INT
+              | NeqOp -> OpExp {left = e_left; right = e_right; oper = NeqOp} ^! T.INT
+              | LtOp -> OpExp {left = e_left; right = e_right; oper = LtOp} ^! T.INT
+              | LeOp -> OpExp {left = e_left; right = e_right; oper = LeOp} ^! T.INT
+              | GtOp -> OpExp {left = e_left; right = e_right; oper = GtOp} ^! T.INT
+              | GeOp -> OpExp {left = e_left; right = e_right; oper = GeOp} ^! T.INT
+              | _ -> raise ThisShouldBeProperErrorMessage
               )
           | _ -> raise NotEnoughTime)        
     | _ -> raise NotImplemented
