@@ -40,6 +40,7 @@ let rec transExp (ctxt: context) =
   let rec trexp (A.Exp{exp_base;pos}) = 
     let (^!) exp_base ty = Exp {exp_base;pos;ty} in
     match exp_base with 
+    | A.NilExp -> NilExp ^! T.NIL
     | A.IntExp n -> IntExp n ^! T.INT 
     | A.StringExp s -> StringExp s ^! T.STRING
     | A.OpExp {left; oper; right} ->
@@ -59,7 +60,6 @@ let rec transExp (ctxt: context) =
                 | LeOp -> OpExp {left = e_left; right = e_right; oper = LeOp} ^! T.INT
                 | GtOp -> OpExp {left = e_left; right = e_right; oper = GtOp} ^! T.INT
                 | GeOp -> OpExp {left = e_left; right = e_right; oper = GeOp} ^! T.INT
-                | _ -> raise ThisShouldBeProperErrorMessage
               )
           | T.STRING, T.STRING ->
               (match oper with
@@ -71,11 +71,19 @@ let rec transExp (ctxt: context) =
               | GeOp -> OpExp {left = e_left; right = e_right; oper = GeOp} ^! T.INT
               | _ -> raise ThisShouldBeProperErrorMessage
               )
-          | _ -> raise NotEnoughTime)        
+          | _ -> raise NotEnoughTime
+        )        
     | _ -> raise NotImplemented
-  and trvar (A.Var{var_base;_}) = 
+  and trvar (A.Var{var_base;pos}) = 
+    let (^@) var_base ty = Var{var_base; pos; ty} in
     match var_base with
-    | A.SimpleVar _ ->
+    | A.SimpleVar x ->
+      (*let enventry = S.look(ctxt.venv, x) in 
+      (match enventry with
+        | E.VarEntry t -> SimpleVar x ^@ t
+        | E.FunEntry _ -> raise ThisShouldBeProperErrorMessage
+      )
+      *)
       raise NotImplemented
     | A.FieldVar (_, _) -> 
       raise NotImplemented
@@ -85,9 +93,8 @@ let rec transExp (ctxt: context) =
 
 and transDecl _ dec = 
   match dec with 
-  | A.VarDec _  ->
+  | A.VarDec {name; escape; typ; init; pos}  ->
       raise NotImplemented
-
   | A.FunctionDec _ ->
       raise NotImplemented
   | A.TypeDec _ ->
