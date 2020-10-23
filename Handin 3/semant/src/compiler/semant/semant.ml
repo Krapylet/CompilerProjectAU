@@ -41,6 +41,7 @@ let rec transExp (ctxt: context) =
     let (^!) exp_base ty = Exp {exp_base;pos;ty} in
     match exp_base with 
     | A.IntExp n -> IntExp n ^! T.INT 
+    | A.StringExp s -> StringExp s ^! T.STRING
     | A.OpExp {left; oper; right} ->
         let e_left, t_left = e_ty (trexp left) in 
         let e_right, t_right = e_ty (trexp right) in 
