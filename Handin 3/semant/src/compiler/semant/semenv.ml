@@ -12,8 +12,8 @@ type enventry
   | FunEntry of { formals: Types.ty list; result: Types.ty }
 
 
-  
+(* Should contain base INT and String *)  
 let baseTenv = S.empty (* TODO *)
 
-
-let baseVenv = S.empty (* TODO *)
+(* Should contain tiger standard library - see Appel p.519 *)
+let baseVenv = S.empty(* TODO *)

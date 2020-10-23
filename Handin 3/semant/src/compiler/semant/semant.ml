@@ -16,8 +16,8 @@ open Tabsyn
 (** Context record contains the environments we use in our translation *)
 
 type context 
-  = { venv: E.enventry S.table
-    ; tenv: Ty.ty S.table
+  = { venv: E.enventry S.table (* Variable environment, is Gamma in couse document *)
+    ; tenv: Ty.ty S.table      (* Type environment, is Delta in course document *)
     ; err :  Err.errenv 
     }
 ;;
