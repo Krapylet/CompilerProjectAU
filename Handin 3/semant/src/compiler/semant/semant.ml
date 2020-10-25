@@ -73,7 +73,17 @@ let rec transExp (ctxt: context) =
               )
           | _ -> raise NotEnoughTime
         )        
-    | _ -> raise NotImplemented
+    | A.CallExp {func; args} -> raise NotImplemented
+    | A.RecordExp {fields} -> raise NotImplemented
+    | A.SeqExp expList -> raise NotImplemented
+    | A.AssignExp {var; exp} -> raise NotImplemented
+    | A.IfExp {test; thn; els} -> raise NotImplemented
+    | A.WhileExp {test; body} -> raise NotImplemented
+    | A.ForExp {var; escape; lo; hi; body} -> raise NotImplemented
+    | A.BreakExp -> raise NotImplemented
+    | A.LetExp {decls; body} -> raise NotImplemented
+    | A.ArrayExp {size; init} -> raise NotImplemented
+    | _ -> raise ThisShouldBeProperErrorMessage
   and trvar (A.Var{var_base;pos}) = 
     let (^@) var_base ty = Var {var_base; pos; ty} in
     match var_base with
@@ -93,10 +103,15 @@ let rec transExp (ctxt: context) =
       raise NotImplemented
   in trexp
 
-and transDecl _ dec = 
+and transDecl ctxt dec = 
   match dec with 
   | A.VarDec {name; escape; typ; init; pos}  ->
-      raise NotImplemented
+      (match typ with 
+      | Some t -> raise NotImplemented (* With type annotation *)
+      | None -> 
+        let _, t_exp = e_ty (transExp(ctxt) init) in
+        S.enter (ctxt.venv, name, E.VarEntry t_exp)
+      )
   | A.FunctionDec _ ->
       raise NotImplemented
   | A.TypeDec _ ->
