@@ -47,32 +47,24 @@ let rec transExp (ctxt: context) =
     | A.OpExp {left; oper; right} ->
         let e_left, t_left = e_ty (trexp left) in 
         let e_right, t_right = e_ty (trexp right) in 
-        (match t_left, t_right with 
-          | T.INT, T.INT -> 
-              (match oper with
-                | PlusOp -> OpExp {left = e_left; right = e_right; oper = PlusOp} ^! T.INT
-                | MinusOp -> OpExp {left = e_left; right = e_right; oper = MinusOp} ^! T.INT
-                | DivideOp -> OpExp {left = e_left; right = e_right; oper = DivideOp} ^! T.INT
-                | TimesOp -> OpExp {left = e_left; right = e_right; oper = TimesOp} ^! T.INT
-                | ExponentOp -> OpExp {left = e_left; right = e_right; oper = ExponentOp} ^! T.INT
-                | EqOp -> OpExp {left = e_left; right = e_right; oper = EqOp} ^! T.INT
-                | NeqOp -> OpExp {left = e_left; right = e_right; oper = NeqOp} ^! T.INT
-                | LtOp -> OpExp {left = e_left; right = e_right; oper = LtOp} ^! T.INT
-                | LeOp -> OpExp {left = e_left; right = e_right; oper = LeOp} ^! T.INT
-                | GtOp -> OpExp {left = e_left; right = e_right; oper = GtOp} ^! T.INT
-                | GeOp -> OpExp {left = e_left; right = e_right; oper = GeOp} ^! T.INT
-              )
-          | T.STRING, T.STRING ->
-              (match oper with
-              | EqOp -> OpExp {left = e_left; right = e_right; oper = EqOp} ^! T.INT
-              | NeqOp -> OpExp {left = e_left; right = e_right; oper = NeqOp} ^! T.INT
-              | LtOp -> OpExp {left = e_left; right = e_right; oper = LtOp} ^! T.INT
-              | LeOp -> OpExp {left = e_left; right = e_right; oper = LeOp} ^! T.INT
-              | GtOp -> OpExp {left = e_left; right = e_right; oper = GtOp} ^! T.INT
-              | GeOp -> OpExp {left = e_left; right = e_right; oper = GeOp} ^! T.INT
-              | _ -> raise ThisShouldBeProperErrorMessage
-              )
-          | _ -> raise NotEnoughTime
+        (match oper with
+          | PlusOp | MinusOp | DivideOp | TimesOp | ExponentOp -> 
+            (match t_left, t_right with
+              | T.INT, T.INT -> OpExp {left = e_left; right = e_right; oper = oper} ^! T.INT
+              | _ -> Err.error ctxt.err pos (EFmt.errorArith); ErrorExp ^! T.ERROR
+            )
+          | LtOp | LeOp | LeOp | GtOp | GeOp ->
+            (match t_left, t_right with
+              | T.INT, T.INT | T.STRING, T.STRING -> 
+                OpExp {left = e_left; right = e_right; oper = oper} ^! T.INT
+              | _ -> Err.error ctxt.err pos (EFmt.errorOtherComparison t_left t_right); ErrorExp ^! T.ERROR
+            )
+          | EqOp | NeqOp ->
+            (match t_left, t_right with
+              | T.INT, T.INT | T.STRING, T.STRING | T.RECORD (_, _), T.RECORD (_, _) | T.ARRAY _, T.ARRAY _ ->
+                OpExp {left = e_left; right = e_right; oper = oper} ^! T.INT
+              | _ -> Err.error ctxt.err pos (EFmt.errorEqNeqComparison t_left t_right); ErrorExp ^! T.ERROR
+            )
         )        
     | A.CallExp {func; args} -> raise NotImplemented
     | A.RecordExp {fields} -> raise NotImplemented
@@ -86,12 +78,12 @@ let rec transExp (ctxt: context) =
           let e_els, t_els = e_ty(trexp e) in
           (match t_els with
             | t_thn -> IfExp {test = e_test; thn = e_thn; els = Some e_els} ^! t_els
-            | _ -> raise ThisShouldBeProperErrorMessage
+            | _ -> Err.error ctxt.err pos (EFmt.errorIfBranchesNotSameType t_thn t_els); ErrorExp ^! T.ERROR
           )
         | None ->
           (match t_thn with
             | T.VOID -> IfExp{test = e_test; thn = e_thn; els = None} ^! T.VOID
-            | _ -> raise ThisShouldBeProperErrorMessage
+            | _ -> Err.error ctxt.err pos (EFmt.errorIfThenShouldBeVoid t_thn); ErrorExp ^! T.ERROR
           )
       ) 
     | A.WhileExp {test; body} -> 
@@ -102,27 +94,31 @@ let rec transExp (ctxt: context) =
           let e_body, t_body = e_ty(trexp body) in
           (match t_body with
             | T.VOID -> WhileExp {test = e_test; body = e_body} ^! T.VOID
-            | _ -> raise ThisShouldBeProperErrorMessage
+            | _ -> Err.error ctxt.err pos (EFmt.errorWhileShouldBeVoid t_body); ErrorExp ^! T.ERROR
           )
-        | _ -> raise ThisShouldBeProperErrorMessage
+        | _ -> Err.error ctxt.err pos (EFmt.errorIntRequired t_test); ErrorExp ^! T.ERROR
       )
     | A.ForExp {var; escape; lo; hi; body} -> 
       let e_lo, t_lo = e_ty (trexp lo) in
       let e_hi, t_hi = e_ty (trexp hi) in
-      (match t_lo, t_hi with
-        | T.INT, T.INT -> 
-          let ctxt = {ctxt with venv = S.enter (ctxt.venv, var, E.VarEntry t_lo); breakable = true} in
-          let e_body, t_body = e_ty(trexp body) in
-          (match t_body with
-            | T.VOID -> ForExp {var = var; escape = ref true; lo = e_lo; hi = e_hi; body = e_body} ^! T.VOID
-            | _ -> raise ThisShouldBeProperErrorMessage 
+      (match t_lo with
+        | T.INT -> 
+          (match t_hi with 
+            | T.INT ->  
+              let ctxt = {ctxt with venv = S.enter (ctxt.venv, var, E.VarEntry t_lo); breakable = true} in
+              let e_body, t_body = e_ty(trexp body) in
+              (match t_body with
+                | T.VOID -> ForExp {var = var; escape = ref true; lo = e_lo; hi = e_hi; body = e_body} ^! T.VOID
+                | _ -> Err.error ctxt.err pos (EFmt.errorForShouldBeVoid t_body); ErrorExp ^! T.ERROR
+              )
+            | _ -> Err.error ctxt.err pos (EFmt.errorIntRequired t_hi); ErrorExp ^! T.ERROR
           )
-        | _ -> raise ThisShouldBeProperErrorMessage
+        | _ -> Err.error ctxt.err pos (EFmt.errorIntRequired t_lo); ErrorExp ^! T.ERROR
       )
     | A.BreakExp -> 
       (match ctxt.breakable with
         | true -> BreakExp ^! T.VOID
-        | false -> raise ThisShouldBeProperErrorMessage
+        | false -> Err.error ctxt.err pos (EFmt.errorBreak); ErrorExp ^! T.ERROR
       )
     | A.LetExp {decls; body} -> raise NotImplemented
     | A.ArrayExp {size; init} -> raise NotImplemented
@@ -136,9 +132,9 @@ let rec transExp (ctxt: context) =
         | Some a -> 
           (match a with
             | E.VarEntry t -> SimpleVar x ^@ t
-            | E.FunEntry _ -> raise ThisShouldBeProperErrorMessage
+            | E.FunEntry _ -> Err.error ctxt.err pos (EFmt.errorUsingFunctionAsVariable x); SimpleVar x ^@ T.ERROR
           )
-        | None -> raise ThisShouldBeProperErrorMessage
+        | None -> Err.error ctxt.err pos (EFmt.errorVariableUndefined x); SimpleVar x ^@ T.ERROR
       )
     | A.FieldVar (_, _) -> 
       raise NotImplemented
