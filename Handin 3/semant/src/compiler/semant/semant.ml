@@ -106,8 +106,24 @@ let rec transExp (ctxt: context) =
           )
         | _ -> raise ThisShouldBeProperErrorMessage
       )
-    | A.ForExp {var; escape; lo; hi; body} -> raise NotImplemented
-    | A.BreakExp -> BreakExp ^! T.VOID
+    | A.ForExp {var; escape; lo; hi; body} -> 
+      let e_lo, t_lo = e_ty (trexp lo) in
+      let e_hi, t_hi = e_ty (trexp hi) in
+      (match t_lo, t_hi with
+        | T.INT, T.INT -> 
+          let ctxt = {ctxt with venv = S.enter (ctxt.venv, var, E.VarEntry t_lo); breakable = true} in
+          let e_body, t_body = e_ty(trexp body) in
+          (match t_body with
+            | T.VOID -> ForExp {var = var; escape = ref true; lo = e_lo; hi = e_hi; body = e_body} ^! T.VOID
+            | _ -> raise ThisShouldBeProperErrorMessage 
+          )
+        | _ -> raise ThisShouldBeProperErrorMessage
+      )
+    | A.BreakExp -> 
+      (match ctxt.breakable with
+        | true -> BreakExp ^! T.VOID
+        | false -> raise ThisShouldBeProperErrorMessage
+      )
     | A.LetExp {decls; body} -> raise NotImplemented
     | A.ArrayExp {size; init} -> raise NotImplemented
     | _ -> raise ThisShouldBeProperErrorMessage
@@ -137,7 +153,7 @@ and transDecl ctxt dec =
       | Some t -> raise NotImplemented (* With type annotation *)
       | None -> 
         let _, t_exp = e_ty (transExp(ctxt) init) in
-        ctxt.venv = S.enter (ctxt.venv, name, E.VarEntry t_exp)
+        ctxt = {ctxt with venv = S.enter (ctxt.venv, name, VarEntry t_exp)}
       )
   | A.FunctionDec _ ->
       raise NotImplemented
