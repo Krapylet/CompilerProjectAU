@@ -18,7 +18,8 @@ open Tabsyn
 type context 
   = { venv: E.enventry S.table (* Variable environment, is Gamma in couse document *)
     ; tenv: Ty.ty S.table      (* Type environment, is Delta in course document *)
-    ; err :  Err.errenv 
+    ; err :  Err.errenv
+    ; breakable : bool
     }
 ;;
 
@@ -93,9 +94,20 @@ let rec transExp (ctxt: context) =
             | _ -> raise ThisShouldBeProperErrorMessage
           )
       ) 
-    | A.WhileExp {test; body} -> raise NotImplemented
+    | A.WhileExp {test; body} -> 
+      let e_test, t_test = e_ty (trexp test) in
+      (match t_test with
+        | T.INT ->
+          let ctxt = {venv = ctxt.venv; tenv = ctxt.tenv; err = ctxt.err; breakable = true} in
+          let e_body, t_body = e_ty(trexp body) in
+          (match t_body with
+            | T.VOID -> WhileExp {test = e_test; body = e_body} ^! T.VOID
+            | _ -> raise ThisShouldBeProperErrorMessage
+          )
+        | _ -> raise ThisShouldBeProperErrorMessage
+      )
     | A.ForExp {var; escape; lo; hi; body} -> raise NotImplemented
-    | A.BreakExp -> raise NotImplemented
+    | A.BreakExp -> BreakExp ^! T.VOID
     | A.LetExp {decls; body} -> raise NotImplemented
     | A.ArrayExp {size; init} -> raise NotImplemented
     | _ -> raise ThisShouldBeProperErrorMessage
@@ -137,6 +149,7 @@ let transProg (p: A.exp): exp * Err.errenv =
   
     (transExp ({ venv = E.baseVenv
                ; tenv = E.baseTenv
-               ; err = err}
+               ; err = err
+               ; breakable = false}
               ) p, err) 
   
