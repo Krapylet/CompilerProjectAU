@@ -47,7 +47,7 @@ let rec transExp (ctxt: context) =
         let e_left, t_left = e_ty (trexp left) in 
         let e_right, t_right = e_ty (trexp right) in 
         (match t_left, t_right with 
-          T.INT, T.INT -> 
+          | T.INT, T.INT -> 
               (match oper with
                 PlusOp -> OpExp {left = e_left; right = e_right; oper = PlusOp} ^! T.INT
                 | MinusOp -> OpExp {left = e_left; right = e_right; oper = MinusOp} ^! T.INT
@@ -75,16 +75,18 @@ let rec transExp (ctxt: context) =
         )        
     | _ -> raise NotImplemented
   and trvar (A.Var{var_base;pos}) = 
-    let (^@) var_base ty = Var{var_base; pos; ty} in
+    let (^@) var_base ty = Var {var_base; pos; ty} in
     match var_base with
     | A.SimpleVar x ->
-      (*let enventry = S.look(ctxt.venv, x) in 
+      let enventry = S.look(ctxt.venv, x) in 
       (match enventry with
-        | E.VarEntry t -> SimpleVar x ^@ t
-        | E.FunEntry _ -> raise ThisShouldBeProperErrorMessage
+        | Some a -> 
+          (match a with
+            | E.VarEntry t -> SimpleVar x ^@ t
+            | E.FunEntry _ -> raise ThisShouldBeProperErrorMessage
+          )
+        | None -> raise ThisShouldBeProperErrorMessage
       )
-      *)
-      raise NotImplemented
     | A.FieldVar (_, _) -> 
       raise NotImplemented
     | A.SubscriptVar (_, _) ->
