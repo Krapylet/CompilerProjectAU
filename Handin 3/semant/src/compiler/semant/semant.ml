@@ -49,7 +49,7 @@ let rec transExp (ctxt: context) =
         (match t_left, t_right with 
           | T.INT, T.INT -> 
               (match oper with
-                PlusOp -> OpExp {left = e_left; right = e_right; oper = PlusOp} ^! T.INT
+                | PlusOp -> OpExp {left = e_left; right = e_right; oper = PlusOp} ^! T.INT
                 | MinusOp -> OpExp {left = e_left; right = e_right; oper = MinusOp} ^! T.INT
                 | DivideOp -> OpExp {left = e_left; right = e_right; oper = DivideOp} ^! T.INT
                 | TimesOp -> OpExp {left = e_left; right = e_right; oper = TimesOp} ^! T.INT
@@ -77,7 +77,22 @@ let rec transExp (ctxt: context) =
     | A.RecordExp {fields} -> raise NotImplemented
     | A.SeqExp expList -> raise NotImplemented
     | A.AssignExp {var; exp} -> raise NotImplemented
-    | A.IfExp {test; thn; els} -> raise NotImplemented
+    | A.IfExp {test; thn; els} -> 
+      let e_test, t_test = e_ty (trexp test) in
+      let e_thn, t_thn = e_ty (trexp thn) in 
+      (match els with
+        | Some e -> 
+          let e_els, t_els = e_ty(trexp e) in
+          (match t_els with
+            | t_thn -> IfExp {test = e_test; thn = e_thn; els = Some e_els} ^! t_els
+            | _ -> raise ThisShouldBeProperErrorMessage
+          )
+        | None ->
+          (match t_thn with
+            | T.VOID -> IfExp{test = e_test; thn = e_thn; els = None} ^! T.VOID
+            | _ -> raise ThisShouldBeProperErrorMessage
+          )
+      ) 
     | A.WhileExp {test; body} -> raise NotImplemented
     | A.ForExp {var; escape; lo; hi; body} -> raise NotImplemented
     | A.BreakExp -> raise NotImplemented
@@ -110,7 +125,7 @@ and transDecl ctxt dec =
       | Some t -> raise NotImplemented (* With type annotation *)
       | None -> 
         let _, t_exp = e_ty (transExp(ctxt) init) in
-        S.enter (ctxt.venv, name, E.VarEntry t_exp)
+        ctxt.venv = S.enter (ctxt.venv, name, E.VarEntry t_exp)
       )
   | A.FunctionDec _ ->
       raise NotImplemented
