@@ -44,6 +44,9 @@ let rec transExp (ctxt: context) =
     | A.NilExp -> NilExp ^! T.NIL
     | A.IntExp n -> IntExp n ^! T.INT 
     | A.StringExp s -> StringExp s ^! T.STRING
+    | A.VarExp v -> 
+      let var, t_var = v_ty(trvar v) in
+      VarExp var ^! t_var
     | A.OpExp {left; oper; right} ->
         let e_left, t_left = e_ty (trexp left) in 
         let e_right, t_right = e_ty (trexp right) in 
@@ -123,7 +126,7 @@ let rec transExp (ctxt: context) =
       )
     | A.LetExp {decls; body} ->
       let newDecls = List.map (transDecl ctxt) decls in
-      let e_body, t_body = e_ty(transExp (ctxt) body) in
+      let e_body, t_body = e_ty(trexp body) in
       LetExp{decls = newDecls; body = e_body} ^! t_body
     | A.ArrayExp {size; init} -> raise NotImplemented
     | _ -> raise ThisShouldBeProperErrorMessage
