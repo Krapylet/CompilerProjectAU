@@ -80,11 +80,9 @@ let rec transExp (ctxt: context) =
               (match arg_list with
                 | head::body -> 
                   let e_head, t_head = e_ty (trexp head) in
-                  let acc = List.cons e_head acc in
+                  let acc = acc @ [e_head] in
                   iterate_through_args body acc
-                | [] -> 
-                  let acc = List.rev acc in
-                  acc
+                | [] -> acc
               ) in
               let new_args = iterate_through_args args [] in
               CallExp {func = func; args = new_args} ^! result
@@ -97,12 +95,10 @@ let rec transExp (ctxt: context) =
       (match exp_list with
         | head::body ->
           let e_head, t_head = e_ty (trexp head) in
-          let acc = List.cons e_head acc in
+          let acc = acc @ [e_head] in
           let n = List.length body in
           (match n with
-          | 0 -> 
-            let acc = List.rev acc in
-            SeqExp acc ^! t_head
+          | 0 -> SeqExp acc ^! t_head
           | _ ->
             (match t_head with
               | T.NIL -> Err.error ctxt.err pos (EFmt.errorInferNilType); ErrorExp ^! T.ERROR
@@ -211,11 +207,9 @@ and iterate_through_decls decls acc ctxt =
   (match decls with
     | head::body -> 
       let new_decl, new_ctxt = transDecl ctxt head in
-      let acc = List.cons new_decl acc in
+      let acc = acc @ [new_decl] in
       iterate_through_decls body acc new_ctxt
-    | [] ->
-      let acc = List.rev acc in
-      acc, ctxt
+    | [] -> acc, ctxt
   )
 
 
