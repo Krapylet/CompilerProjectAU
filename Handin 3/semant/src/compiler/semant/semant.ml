@@ -53,7 +53,7 @@ let rec transExp (ctxt: context) =
               | T.INT, T.INT -> OpExp {left = e_left; right = e_right; oper = oper} ^! T.INT
               | _ -> Err.error ctxt.err pos (EFmt.errorArith); ErrorExp ^! T.ERROR
             )
-          | LtOp | LeOp | LeOp | GtOp | GeOp ->
+          | LtOp | LeOp | GtOp | GeOp ->
             (match t_left, t_right with
               | T.INT, T.INT | T.STRING, T.STRING -> 
                 OpExp {left = e_left; right = e_right; oper = oper} ^! T.INT
@@ -120,7 +120,10 @@ let rec transExp (ctxt: context) =
         | true -> BreakExp ^! T.VOID
         | false -> Err.error ctxt.err pos (EFmt.errorBreak); ErrorExp ^! T.ERROR
       )
-    | A.LetExp {decls; body} -> raise NotImplemented
+    | A.LetExp {decls; body} ->
+      let newDecls = List.map (transDecl ctxt) decls in
+      let e_body, t_body = e_ty(transExp (ctxt) body) in
+      LetExp{decls = newDecls; body = e_body} ^! t_body
     | A.ArrayExp {size; init} -> raise NotImplemented
     | _ -> raise ThisShouldBeProperErrorMessage
   and trvar (A.Var{var_base;pos}) = 
@@ -148,8 +151,9 @@ and transDecl ctxt dec =
       (match typ with 
       | Some t -> raise NotImplemented (* With type annotation *)
       | None -> 
-        let _, t_exp = e_ty (transExp(ctxt) init) in
-        ctxt = {ctxt with venv = S.enter (ctxt.venv, name, VarEntry t_exp)}
+        let e_exp, t_exp = e_ty (transExp(ctxt) init) in
+        let ctxt = {ctxt with venv = S.enter (ctxt.venv, name, VarEntry t_exp)} in
+        VarDec{name = name; escape = escape; typ = t_exp; init = e_exp; pos = pos}
       )
   | A.FunctionDec _ ->
       raise NotImplemented
