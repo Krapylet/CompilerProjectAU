@@ -69,7 +69,26 @@ let rec transExp (ctxt: context) =
               | _ -> Err.error ctxt.err pos (EFmt.errorEqNeqComparison t_left t_right); ErrorExp ^! T.ERROR
             )
         )        
-    | A.CallExp {func; args} -> raise NotImplemented
+    | A.CallExp {func; args} -> 
+      let enventry = S.look(ctxt.venv, func) in
+      (match enventry with
+        | Some a ->
+          (match a with 
+            | E.VarEntry _ -> Err.error ctxt.err pos (EFmt.errorUsingVariableAsFunction func); ErrorExp ^! T.ERROR
+            | E.FunEntry {formals = _; result = result} -> 
+              let rec iterate_through_args arg_list acc =
+              (match arg_list with
+                | head::body -> 
+                  let e_head, t_head = e_ty (trexp head) in
+                  let acc = List.cons e_head acc in
+                  iterate_through_args body acc
+                | [] -> acc
+              ) in
+              let new_args = iterate_through_args args [] in
+              CallExp {func = func; args = new_args} ^! result
+          )
+        | None -> Err.error ctxt.err pos (EFmt.errorFunctionUndefined func); ErrorExp ^! T.ERROR
+      )
     | A.RecordExp {fields} -> raise NotImplemented
     | A.SeqExp expList ->
       let rec iterate_through_exps exp_list acc =
@@ -82,8 +101,8 @@ let rec transExp (ctxt: context) =
           | 0 -> SeqExp acc ^! t_head
           | _ ->
             (match t_head with
-            | T.NIL -> Err.error ctxt.err pos (EFmt.errorInferNilType); ErrorExp ^! T.ERROR
-            | _ -> iterate_through_exps body acc
+              | T.NIL -> Err.error ctxt.err pos (EFmt.errorInferNilType); ErrorExp ^! T.ERROR
+              | _ -> iterate_through_exps body acc
             )
           )
       ) in
@@ -194,8 +213,8 @@ and iterate_through_decls decls acc ctxt =
   )
 
 
-      let transProg (p: A.exp): exp * Err.errenv = 
-  let err =  Err.initial_env in
+  let transProg (p: A.exp): exp * Err.errenv = 
+    let err =  Err.initial_env in
   
     (transExp ({ venv = E.baseVenv
                ; tenv = E.baseTenv

@@ -15,15 +15,28 @@ type enventry
 (* Should contain base INT and STRING *)
 let baseTenv = S.enter (S.enter( S.empty, S.symbol "string", Ty.STRING), S.symbol "int", Ty.INT)
 
+let standardLibrary = 
+  [
+  ( S.symbol "print", FunEntry{formals = [Ty.STRING]; result = Ty.VOID} )
+  ; ( S.symbol "flush", FunEntry {formals = []; result = Ty.VOID} )
+  ; ( S.symbol "getchar", FunEntry {formals = []; result = Ty.STRING} )
+  ; ( S.symbol "ord", FunEntry {formals = [Ty.STRING]; result = Ty.INT} )
+  ; ( S.symbol "chr", FunEntry {formals = [Ty.INT]; result = Ty.STRING} )
+  ; ( S.symbol "size", FunEntry {formals = [Ty.STRING]; result = Ty.INT} )
+  ; ( S.symbol "substring", FunEntry {formals = [Ty.STRING; Ty.INT; Ty.INT]; result = Ty.STRING} )
+  ; ( S.symbol "concat", FunEntry {formals = [Ty.STRING; Ty.STRING]; result = Ty.STRING} )
+  ; ( S.symbol "not", FunEntry {formals = [Ty.INT]; result = Ty.INT} )
+  ; ( S.symbol "exit", FunEntry {formals = [Ty.INT]; result = Ty.VOID} )
+  ]
+
+let rec addToVenv entries acc = 
+  match entries with 
+    | (s,v)::body -> 
+      let acc = S.enter (acc, s, v) in
+      addToVenv body acc
+    | [] -> acc
+
 (* Should contain tiger standard library - see Appel p.519 *)
-(* S.symbol "print", FunEntry {[Ty.STRING]; Ty.VOID} *)
-(* S.symbol "flush", FunEntry {[]; Ty.VOID} *)
-(* S.symbol "getchar", FunEntry {[]; Ty.STRING} *)
-(* S.symbol "ord", FunEntry {[Ty.STRING]; Ty.INT} *)
-(* S.symbol "chr", FunEntry {[Ty.INT]; Ty.STRING} *)
-(* S.symbol "size", FunEntry {[Ty.STRING]; Ty.INT} *)
-(* S.symbol "substring", FunEntry {[Ty.STRING, Ty.INT, Ty.INT]; Ty.STRING} *)
-(* S.symbol "concat", FunEntry {[Ty.STRING, Ty.STRING]; Ty.STRING} *)
-(* S.symbol "not", FunEntry {[Ty.INT]; Ty.INT} *)
-(* S.symbol "exit", FunEntry {[Ty.INT]; Ty.VOID} *)
-let baseVenv = S.empty(* TODO *)
+let baseVenv = addToVenv standardLibrary S.empty
+      
+
