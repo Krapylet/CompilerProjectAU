@@ -82,7 +82,9 @@ let rec transExp (ctxt: context) =
                   let e_head, t_head = e_ty (trexp head) in
                   let acc = List.cons e_head acc in
                   iterate_through_args body acc
-                | [] -> acc
+                | [] -> 
+                  let acc = List.rev acc in
+                  acc
               ) in
               let new_args = iterate_through_args args [] in
               CallExp {func = func; args = new_args} ^! result
@@ -98,7 +100,9 @@ let rec transExp (ctxt: context) =
           let acc = List.cons e_head acc in
           let n = List.length body in
           (match n with
-          | 0 -> SeqExp acc ^! t_head
+          | 0 -> 
+            let acc = List.rev acc in
+            SeqExp acc ^! t_head
           | _ ->
             (match t_head with
               | T.NIL -> Err.error ctxt.err pos (EFmt.errorInferNilType); ErrorExp ^! T.ERROR
@@ -209,7 +213,9 @@ and iterate_through_decls decls acc ctxt =
       let new_decl, new_ctxt = transDecl ctxt head in
       let acc = List.cons new_decl acc in
       iterate_through_decls body acc new_ctxt
-    | [] -> acc, ctxt 
+    | [] ->
+      let acc = List.rev acc in
+      acc, ctxt
   )
 
 
