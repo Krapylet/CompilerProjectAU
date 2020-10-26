@@ -125,9 +125,9 @@ let rec transExp (ctxt: context) =
         | false -> Err.error ctxt.err pos (EFmt.errorBreak); ErrorExp ^! T.ERROR
       )
     | A.LetExp {decls; body} ->
-      let newDecls = List.map (transDecl ctxt) decls in
-      let e_body, t_body = e_ty(trexp body) in
-      LetExp{decls = newDecls; body = e_body} ^! t_body
+      let new_decls, ctxt = iterate_through_decls decls [] ctxt in
+      let e_body, t_body = e_ty(transExp (ctxt) body) in
+      LetExp{decls = new_decls; body = e_body} ^! t_body
     | A.ArrayExp {size; init} -> raise NotImplemented
     | _ -> raise ThisShouldBeProperErrorMessage
   and trvar (A.Var{var_base;pos}) = 
@@ -156,15 +156,29 @@ and transDecl ctxt dec =
       | Some t -> raise NotImplemented (* With type annotation *)
       | None -> 
         let e_exp, t_exp = e_ty (transExp(ctxt) init) in
-        let ctxt = {ctxt with venv = S.enter (ctxt.venv, name, VarEntry t_exp)} in
-        VarDec{name = name; escape = escape; typ = t_exp; init = e_exp; pos = pos}
+        let new_venv = S.enter (ctxt.venv, name, VarEntry t_exp) in 
+        let new_ctxt = {ctxt with venv = new_venv} in
+        (VarDec{name = name; escape = escape; typ = t_exp; init = e_exp; pos = pos}, new_ctxt)
       )
   | A.FunctionDec _ ->
       raise NotImplemented
   | A.TypeDec _ ->
       raise NotImplemented
-      
-let transProg (p: A.exp): exp * Err.errenv = 
+
+(* Helper function *)
+(* Takes a list of A.decl, an accumulator and a context*)
+(* Returns a list of decl and a updated context *)
+and iterate_through_decls decls acc ctxt = 
+  (match decls with
+    | head::body -> 
+      let new_decl, new_ctxt = transDecl ctxt head in
+      let acc = List.cons new_decl acc in
+      iterate_through_decls body acc new_ctxt
+    | [] -> acc, ctxt 
+  )
+
+
+      let transProg (p: A.exp): exp * Err.errenv = 
   let err =  Err.initial_env in
   
     (transExp ({ venv = E.baseVenv
