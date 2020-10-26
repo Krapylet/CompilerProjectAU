@@ -71,7 +71,23 @@ let rec transExp (ctxt: context) =
         )        
     | A.CallExp {func; args} -> raise NotImplemented
     | A.RecordExp {fields} -> raise NotImplemented
-    | A.SeqExp expList -> raise NotImplemented
+    | A.SeqExp expList ->
+      let rec iterate_through_exps exp_list acc =
+      (match exp_list with
+        | head::body ->
+          let e_head, t_head = e_ty (trexp head) in
+          let acc = List.cons e_head acc in
+          let n = List.length body in
+          (match n with
+          | 0 -> SeqExp acc ^! t_head
+          | _ ->
+            (match t_head with
+            | T.NIL -> Err.error ctxt.err pos (EFmt.errorInferNilType); ErrorExp ^! T.ERROR
+            | _ -> iterate_through_exps body acc
+            )
+          )
+      ) in
+      iterate_through_exps expList []
     | A.AssignExp {var; exp} -> raise NotImplemented
     | A.IfExp {test; thn; els} -> 
       let e_test, t_test = e_ty (trexp test) in
