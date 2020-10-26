@@ -76,8 +76,9 @@ let rec transExp (ctxt: context) =
       (match els with
         | Some e -> 
           let e_els, t_els = e_ty(trexp e) in
-          (match t_els with
-            | t_thn -> IfExp {test = e_test; thn = e_thn; els = Some e_els} ^! t_els
+          let t = compare t_thn t_els in
+          (match t with
+            | 0 -> IfExp {test = e_test; thn = e_thn; els = Some e_els} ^! t_els
             | _ -> Err.error ctxt.err pos (EFmt.errorIfBranchesNotSameType t_thn t_els); ErrorExp ^! T.ERROR
           )
         | None ->

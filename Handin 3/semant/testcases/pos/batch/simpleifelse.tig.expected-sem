@@ -1,0 +1,8 @@
+(STRING,
+  IfExp(
+  | (INT,
+  |   IntExp(0)),
+  | (INT,
+  |   IntExp(0)),
+  | (STRING,
+  |   StringExp("abc"))))
