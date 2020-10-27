@@ -1,7 +1,7 @@
 (**************************************************************************)
 (* AU compilation.                                                        *)
 (* Skeleton file -- expected to be modified as part of the assignment     *)
-(**************************************************************************)
+(**** **********************************************************************)
 open Tigercommon
 
 module S = Symbol
@@ -122,7 +122,14 @@ let rec transExp (ctxt: context) =
           )
       ) in
       iterate_through_exps expList []
-    | A.AssignExp {var; exp} -> raise NotImplemented
+    | A.AssignExp {var; exp} -> 
+        let v_var, t_var = v_ty(trvar var) in
+        let e_exp, t_exp = e_ty(trexp exp) in
+        let isSameType = compare t_var t_exp in
+        (match isSameType with
+          | 0 -> AssignExp{var = v_var; exp = e_exp} ^! T.VOID
+          | _ -> Err.error ctxt.err pos (EFmt.errorAssignWrongType t_exp t_var); ErrorExp ^! T.ERROR
+        )
     | A.IfExp {test; thn; els} -> 
       let e_test, t_test = e_ty (trexp test) in
       let e_thn, t_thn = e_ty (trexp thn) in 

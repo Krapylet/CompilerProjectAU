@@ -1,0 +1,13 @@
+(INT,
+  LetExp([
+  | VarDec(x,true,INT,
+  |   (INT,
+  |   | IntExp(10)))],
+  | (INT,
+  |   OpExp(EqOp,
+  |   | (INT,
+  |   |   VarExp(
+  |   |   | (INT,
+  |   |   |   SimpleVar(x)))),
+  |   | (INT,
+  |   |   IntExp(5))))))

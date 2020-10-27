@@ -49,6 +49,10 @@ let errorVariableUndefined id =
 let errorVariableUnassignable id = 
   "cannot assign to the for-variable " ^ string_of_symbol id
 
+let errorAssignWrongType t1 t2=
+  "expected type " ^ string_of_type t2 ^
+  " but got " ^ string_of_type t1
+
 let errorFunctionUndefined id = 
   "undefined function "  ^ string_of_symbol id 
 
