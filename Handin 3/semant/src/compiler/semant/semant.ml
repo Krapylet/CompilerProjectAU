@@ -29,7 +29,7 @@ let v_ty (Var{ty;_} as v) = (v,ty)
 exception NotImplemented
 exception NotEnoughTime 
 exception ThisShouldBeProperErrorMessage
-let actualTy _: T.ty = raise NotImplemented
+let actualTy _: T.ty = raise NotImplemented (* Should look through NAME types to find actual types*)
 
 
 (* Obs: the infix operators to help with creating expressions. 
@@ -284,8 +284,25 @@ and transDecl ctxt dec =
         | [] -> (FunctionDec acc, ctxt)
       ) in
     iterate_through_funDecls funDeclDataList [] ctxt
-  | A.TypeDec _ ->
-      raise NotImplemented
+  | A.TypeDec typeDeclList ->
+    let iterate_through_typeDecls decl_list acc ctxt =
+      (match decl_list with
+        | head::body ->
+          (match head with
+            | A.Tdecl {name; ty; pos} ->
+              (match ty with
+                | A.NameTy (symbol, pos) -> raise NotImplemented
+                | A.RecordTy fieldDataList -> raise NotImplemented
+                | A.ArrayTy (symbol, pos) -> raise NotImplemented
+              )
+            | _ -> raise ThisShouldBeProperErrorMessage
+          )
+        | [] -> 
+          (* Check for cycles in updated tenv *)
+          (acc, ctxt)
+    ) in
+    let declList, new_ctxt = iterate_through_typeDecls typeDeclList [] ctxt in
+    (TypeDec declList, new_ctxt)
 
 (* Helper function *)
 (* Takes a list of A.decl, an accumulator and a context*)
