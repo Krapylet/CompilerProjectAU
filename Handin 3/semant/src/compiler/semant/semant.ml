@@ -77,7 +77,7 @@ let rec transExp (ctxt: context) =
             | E.VarEntry _ -> Err.error ctxt.err pos (EFmt.errorUsingVariableAsFunction func); ErrorExp ^! T.ERROR
             | E.FunEntry {formals; result} ->
               let formalLen = List.length formals in
-              let argLen = List.length formals in
+              let argLen = List.length args in
               let isCorrectNumOfArg = compare formalLen argLen in
               (match isCorrectNumOfArg with
                 | 0 ->  
@@ -120,6 +120,7 @@ let rec transExp (ctxt: context) =
               | _ -> iterate_through_exps body acc
             )
           )
+        | [] -> SeqExp [] ^! T.VOID
       ) in
       iterate_through_exps expList []
     | A.AssignExp {var; exp} -> 
@@ -241,43 +242,50 @@ and transDecl ctxt dec =
                     )
                   | [] -> (t_acc, arg_acc)
                 ) in
-              let typ_list, arg_list = iterate_through_args params [] [] in
-              let get_result_type res =
-                (match res with
-                  | Some a ->
-                    let res_type = S.look (ctxt.tenv, get_symbol a) in
-                    (match res_type with
-                      | Some r -> r
-                      | None -> raise ThisShouldBeProperErrorMessage
-                    )
-                  | None -> raise NotImplemented (* No return type annotation - what to do? *)
-                ) in
-              let res_type = get_result_type result in
-              let new_venv1 = S.enter (ctxt.venv, name, E.FunEntry{formals = typ_list; result = res_type}) in
-              let new_ctxt1 = {ctxt with venv = new_venv1} in
-              let rec bind_args args venv =
-                (match args with
-                  | head::body -> 
-                    (match head with
-                      | Arg {name; escape; ty; pos} ->
-                        let new_venv = S.enter (venv, name, E.VarEntry ty) in
-                        bind_args body new_venv
-                      | _ -> raise ThisShouldBeProperErrorMessage
-                    )
-                  | [] -> venv
-                ) in
-              let new_venv2 = bind_args arg_list new_venv1 in
-              let new_ctxt2 = {new_ctxt1 with venv = new_venv2; breakable = false} in
-              let e_body, t_body = e_ty(transExp(new_ctxt2) body) in
-              let isSameType = compare t_body res_type in
-              (match isSameType with
-                | 0 -> 
-                  let fun_decl = Fdecl {name = name; args = arg_list; result = res_type; body = e_body; pos = pos} in
-                  let acc = acc @ [fun_decl] in
-                  iterate_through_funDecls d_body acc new_ctxt1
-                | _ -> 
-                  Err.error ctxt.err pos (EFmt.errorFunctionReturn t_body res_type); 
-                  iterate_through_funDecls d_body acc new_ctxt1
+              let doesFunExist = S.look (ctxt.venv, name) in
+              (match doesFunExist with
+                | Some f -> 
+                  Err.error ctxt.err pos (EFmt.errorDuplicate name); 
+                  iterate_through_funDecls d_body acc ctxt
+                | None -> 
+                  let typ_list, arg_list = iterate_through_args params [] [] in
+                  let get_result_type res =
+                    (match res with
+                      | Some a ->
+                        let res_type = S.look (ctxt.tenv, get_symbol a) in
+                        (match res_type with
+                          | Some r -> r
+                          | None -> raise ThisShouldBeProperErrorMessage
+                        )
+                      | None -> T.VOID
+                    ) in
+                  let res_type = get_result_type result in
+                  let new_venv1 = S.enter (ctxt.venv, name, E.FunEntry{formals = typ_list; result = res_type}) in
+                  let new_ctxt1 = {ctxt with venv = new_venv1} in
+                  let rec bind_args args venv =
+                    (match args with
+                      | head::body -> 
+                        (match head with
+                          | Arg {name; escape; ty; pos} ->
+                            let new_venv = S.enter (venv, name, E.VarEntry ty) in
+                            bind_args body new_venv
+                          | _ -> raise ThisShouldBeProperErrorMessage
+                        )
+                      | [] -> venv
+                    ) in
+                  let new_venv2 = bind_args arg_list new_venv1 in
+                  let new_ctxt2 = {new_ctxt1 with venv = new_venv2; breakable = false} in
+                  let e_body, t_body = e_ty(transExp(new_ctxt2) body) in
+                  let isSameType = compare t_body res_type in
+                  (match isSameType with
+                    | 0 -> 
+                      let fun_decl = Fdecl {name = name; args = arg_list; result = res_type; body = e_body; pos = pos} in
+                      let acc = acc @ [fun_decl] in
+                      iterate_through_funDecls d_body acc new_ctxt1
+                    | _ -> 
+                      Err.error ctxt.err pos (EFmt.errorFunctionReturn t_body res_type); 
+                      iterate_through_funDecls d_body acc new_ctxt1
+                  )
               )
             | _ -> raise ThisShouldBeProperErrorMessage
           )
