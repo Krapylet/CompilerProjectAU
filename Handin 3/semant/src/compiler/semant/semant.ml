@@ -75,17 +75,32 @@ let rec transExp (ctxt: context) =
         | Some a ->
           (match a with 
             | E.VarEntry _ -> Err.error ctxt.err pos (EFmt.errorUsingVariableAsFunction func); ErrorExp ^! T.ERROR
-            | E.FunEntry {formals = _; result = result} -> 
-              let rec iterate_through_args arg_list acc =
-              (match arg_list with
-                | head::body -> 
-                  let e_head, t_head = e_ty (trexp head) in
-                  let acc = acc @ [e_head] in
-                  iterate_through_args body acc
-                | [] -> acc
-              ) in
-              let new_args = iterate_through_args args [] in
-              CallExp {func = func; args = new_args} ^! result
+            | E.FunEntry {formals; result} ->
+              let formalLen = List.length formals in
+              let argLen = List.length formals in
+              let isCorrectNumOfArg = compare formalLen argLen in
+              (match isCorrectNumOfArg with
+                | 0 ->  
+                  let rec iterate_through_args arg_list formal_list acc =
+                    (match arg_list, formal_list with
+                      | a_head::a_body, f_head::f_body -> 
+                        let e_head, t_head = e_ty (trexp a_head) in
+                        let isSameType = compare t_head f_head in
+                        (match isSameType with
+                          | 0 ->
+                            let acc = acc @ [e_head] in
+                            iterate_through_args a_body f_body acc
+                          | _ -> 
+                            let acc = acc @ [ErrorExp ^! T.ERROR] in
+                            Err.error ctxt.err pos (EFmt.errorWrongArgument f_head t_head); 
+                            iterate_through_args a_body f_body acc
+                        )
+                      | [], [] -> acc
+                    ) in
+                  let new_args = iterate_through_args args formals [] in
+                  CallExp {func = func; args = new_args} ^! result
+                | _ -> Err.error ctxt.err pos (EFmt.errorFunctionArguments func); ErrorExp ^! T.ERROR
+              )
           )
         | None -> Err.error ctxt.err pos (EFmt.errorFunctionUndefined func); ErrorExp ^! T.ERROR
       )

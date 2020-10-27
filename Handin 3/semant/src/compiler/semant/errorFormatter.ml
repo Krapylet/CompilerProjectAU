@@ -59,6 +59,10 @@ let errorFunctionReturn bodyTy funTy =
   "the type of the body is " ^ string_of_type bodyTy ^ " but " 
   ^ string_of_type funTy ^ " is required"
 
+let errorWrongArgument formalTy argTy =
+  "expected arguement of type " ^ string_of_type formalTy ^ " but got "
+  ^ string_of_type argTy
+
 let errorCoercible fromType toType = 
   "type "  ^ string_of_type fromType ^ " cannot be coerced into " 
   ^ string_of_type toType 
