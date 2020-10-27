@@ -200,7 +200,7 @@ let rec transExp (ctxt: context) =
           )
         | None -> Err.error ctxt.err pos (EFmt.errorVariableUndefined x); SimpleVar x ^@ T.ERROR
       )
-    | A.FieldVar (_, _) -> 
+    | A.FieldVar (v, s) -> 
       raise NotImplemented
     | A.SubscriptVar (_, _) ->
       raise NotImplemented
@@ -217,8 +217,35 @@ and transDecl ctxt dec =
         let new_ctxt = {ctxt with venv = new_venv} in
         (VarDec{name = name; escape = escape; typ = t_exp; init = e_exp; pos = pos}, new_ctxt)
       )
-  | A.FunctionDec _ ->
-      raise NotImplemented
+  | A.FunctionDec funDeclDataList ->(* Should return fundecldata list *)
+    let iterate_through_funDecls decls acc =
+      (match decls with
+        | head::body -> 
+          (match head with
+            | A.Fdecl{name; args; result; body; pos} ->
+              let rec iterate_through_args args t_acc arg_acc = (*Returns a list of types and a list of Args*)
+              (match args with
+                | a_head::a_body ->
+                  (match a_head with
+                    | A.Field{name; escape; typ; pos} ->
+                        t_acc = t_acc @ [typ]
+                        arg_acc = arg_acc @ [Arg{name = name; escape = escape; typ = typ; pos = pos}]
+                        iterate_through_args a_body t_acc arg_acc
+                    | _ -> raise ThisShouldBeProperErrorMessage
+                  )
+                | [] -> (t_acc, arg_acc)
+              ) in
+              let typ_list, arg_list = iterate_through_args args [] [] in
+              let new_venv = S.enter (ctxt.venv, name, FunEntry{typ_list, result}) in
+              let ctxt = {ctxt with venv = new_venv} in
+              let fun_decl = FDecl {name = name, args = arg_list, result = result; body = body; pos = pos} in
+              let acc = acc @ [fun_decl]
+              iterate_through_funDecls body acc
+            | _ -> raise ThisShouldBeProperErrorMessage
+          )
+        | [] -> acc
+      ) in
+    iterate_through_fundDecls funDeclsDataList []
   | A.TypeDec _ ->
       raise NotImplemented
 
