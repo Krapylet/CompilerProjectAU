@@ -218,34 +218,72 @@ and transDecl ctxt dec =
         (VarDec{name = name; escape = escape; typ = t_exp; init = e_exp; pos = pos}, new_ctxt)
       )
   | A.FunctionDec funDeclDataList ->(* Should return fundecldata list *)
-    let iterate_through_funDecls decls acc =
+    let get_symbol (s,_) = s in (* Helper function *)
+    let rec iterate_through_funDecls decls acc ctxt =
       (match decls with
-        | head::body -> 
+        | head::d_body -> 
           (match head with
-            | A.Fdecl{name; args; result; body; pos} ->
+            | A.Fdecl{name; params; result; body; pos} ->
               let rec iterate_through_args args t_acc arg_acc = (*Returns a list of types and a list of Args*)
-              (match args with
-                | a_head::a_body ->
-                  (match a_head with
-                    | A.Field{name; escape; typ; pos} ->
-                        t_acc = t_acc @ [typ]
-                        arg_acc = arg_acc @ [Arg{name = name; escape = escape; typ = typ; pos = pos}]
-                        iterate_through_args a_body t_acc arg_acc
-                    | _ -> raise ThisShouldBeProperErrorMessage
-                  )
-                | [] -> (t_acc, arg_acc)
-              ) in
-              let typ_list, arg_list = iterate_through_args args [] [] in
-              let new_venv = S.enter (ctxt.venv, name, FunEntry{typ_list, result}) in
-              let ctxt = {ctxt with venv = new_venv} in
-              let fun_decl = FDecl {name = name, args = arg_list, result = result; body = body; pos = pos} in
-              let acc = acc @ [fun_decl]
-              iterate_through_funDecls body acc
+                (match args with
+                  | a_head::a_body ->
+                    (match a_head with
+                      | A.Field{name; escape; typ; pos} ->
+                          let arg_typ = S.look (ctxt.tenv, get_symbol typ) in
+                          (match arg_typ with
+                            | Some t ->
+                              let t_acc = t_acc @ [t] in
+                              let arg_acc = arg_acc @ [Arg{name = name; escape = escape; ty = t; pos = pos}] in
+                              iterate_through_args a_body t_acc arg_acc
+                            | None -> raise ThisShouldBeProperErrorMessage
+                          )
+                      | _ -> raise ThisShouldBeProperErrorMessage
+                    )
+                  | [] -> (t_acc, arg_acc)
+                ) in
+              let typ_list, arg_list = iterate_through_args params [] [] in
+              let get_result_type res =
+                (match res with
+                  | Some a ->
+                    let res_type = S.look (ctxt.tenv, get_symbol a) in
+                    (match res_type with
+                      | Some r -> r
+                      | None -> raise ThisShouldBeProperErrorMessage
+                    )
+                  | None -> raise NotImplemented (* No return type annotation - what to do? *)
+                ) in
+              let res_type = get_result_type result in
+              let new_venv1 = S.enter (ctxt.venv, name, E.FunEntry{formals = typ_list; result = res_type}) in
+              let new_ctxt1 = {ctxt with venv = new_venv1} in
+              let rec bind_args args venv =
+                (match args with
+                  | head::body -> 
+                    (match head with
+                      | Arg {name; escape; ty; pos} ->
+                        let new_venv = S.enter (venv, name, E.VarEntry ty) in
+                        bind_args body new_venv
+                      | _ -> raise ThisShouldBeProperErrorMessage
+                    )
+                  | [] -> venv
+                ) in
+              let new_venv2 = bind_args arg_list new_venv1 in
+              let new_ctxt2 = {new_ctxt1 with venv = new_venv2; breakable = false} in
+              let e_body, t_body = e_ty(transExp(new_ctxt2) body) in
+              let isSameType = compare t_body res_type in
+              (match isSameType with
+                | 0 -> 
+                  let fun_decl = Fdecl {name = name; args = arg_list; result = res_type; body = e_body; pos = pos} in
+                  let acc = acc @ [fun_decl] in
+                  iterate_through_funDecls d_body acc new_ctxt1
+                | _ -> 
+                  Err.error ctxt.err pos (EFmt.errorFunctionReturn t_body res_type); 
+                  iterate_through_funDecls d_body acc new_ctxt1
+              )
             | _ -> raise ThisShouldBeProperErrorMessage
           )
-        | [] -> acc
+        | [] -> (FunctionDec acc, ctxt)
       ) in
-    iterate_through_fundDecls funDeclsDataList []
+    iterate_through_funDecls funDeclDataList [] ctxt
   | A.TypeDec _ ->
       raise NotImplemented
 
