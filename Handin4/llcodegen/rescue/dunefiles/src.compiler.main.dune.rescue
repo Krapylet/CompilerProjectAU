@@ -1,0 +1,6 @@
+(library
+        (name tigermain)        
+        (ocamlopt_flags (:include rescue.native.sexp))
+        (libraries stdio cmdliner tigercommon tigerhoist tigerll tigernormalize)
+        )
+
